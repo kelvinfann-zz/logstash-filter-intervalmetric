@@ -1,5 +1,5 @@
 Gem::Specification.new do |s|
-  s.name = 'logstash-filter-intervalmetrics'
+  s.name = 'logstash-filter-intervalmetric'
   s.version         = '0.0.1'
   s.licenses = ['Apache License (2.0)']
   s.summary = "The intervalmetric filter is a stripped down version of the metric filter used to count the number of messages accross an interval of time."

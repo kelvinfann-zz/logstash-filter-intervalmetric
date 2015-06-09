@@ -6,7 +6,7 @@ require "logstash/namespace"
 # The IntervalMetric filter is used to count the number of 
 # messages that passed through logstash over an interval time
 #
-# NOTE IntervalMetric is essentially just a stripped down
+# Note: IntervalMetric is essentially just a stripped down
 # version of logstash's metric, with some modifications to allow it to 
 # count interval times. 
 # 
@@ -33,7 +33,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
 
   public
   def register
-    require "Metriks"
+    require "metriks"
     require "socket"
     require "atomic"
     require "thread_safe"
