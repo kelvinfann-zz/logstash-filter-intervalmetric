@@ -69,8 +69,8 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     end # @metric_counter.each_pair
 
     #to compensate the offset
-    @last_flush.value = @last_flush.value - @counter_interval
-    @last_clear.value = @last_clear.value - @counter_interval
+    @last_flush.value = @last_flush.value - @count_interval
+    @last_clear.value = @last_clear.value - @count_interval
     filter_matched(event) # last line of our successful code
     return [event]
   end # def flush
