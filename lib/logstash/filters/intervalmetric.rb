@@ -23,12 +23,12 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   config_name "intervalmetric"
   
   # syntax: `counter => [ "name of metric", "name of metric" ]`
-  config: :counter, :validate => :array, :default => []
+  config :counter, :validate => :array, :default => []
 
   # count_interval is the time interval that the counters count till 
   # It also determines the flush_interval, which is the same, but is
   # delayed by 5 seconds.
-  config: :count_interval, :validate => :number, :default => 600
+  config :count_interval, :validate => :number, :default => 600
 
 
   public
@@ -69,8 +69,8 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     end # @metric_counter.each_pair
 
     #to compensate the offset
-    @last_flush.value = 5
-    @last_clear.value = 5
+    @last_flush.value = @last_flush.value - @counter_interval
+    @last_clear.value = @last_clear.value - @counter_interval
     filter_matched(event) # last line of our successful code
     return [event]
   end # def flush
@@ -84,6 +84,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
 
   def flush_rates(event, name, metric)
     event["#{name}.count"] = metric.count
+  end # def flush_rates
 
   def metric_key(key)
     "#{@random_key_preffix}_#{key}"
