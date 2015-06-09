@@ -8,7 +8,7 @@ Following the lead of LogStash, this plugin is completely free and fully open so
 
 
 
-## Desclaimer
+## Disclaimer
 
 This plugin is essentially a stripped down and modified version of the LogStash plugin [Metric](https://github.com/logstash-plugins/logstash-filter-metrics). 
 
