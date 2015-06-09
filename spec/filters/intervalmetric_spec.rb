@@ -14,7 +14,7 @@ describe LogStash::Filters::IntervalMetric do
     end # context "no events were receieved"
     context "when one event was received" do
       subject {
-        config = {"counter" => ["one"]}
+        config = {"counter" => ["one"], "count_interval => -5"}
         filter = LogStash::Filters::IntervalMetric.new config
         filter.register
         filter.filter LogStash::Event.new({"response" => 200})
