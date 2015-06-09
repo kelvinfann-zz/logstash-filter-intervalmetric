@@ -1,7 +1,7 @@
 require 'spec_helper'
-require "logstash/filters/example"
+require "logstash/filters/intervalmetric"
 
-describe LogStash::Filters::Example do
+describe LogStash::Filters::IntervalMetric do
   context "basic counter" do
     context "when no events were received" do
       it "should not do anything" do
@@ -13,4 +13,4 @@ describe LogStash::Filters::Example do
       end # it "should not do anything"
     end # context "no events were receieved"
   end # context "basic counter"
-end # describe Logstash::Filters:Example
+end # describe Logstash::Filters:IntervalMetric
