@@ -24,16 +24,17 @@ describe LogStash::Filters::IntervalMetric do
         insist { subject.length } == 1
         insist { subject.first["one.count"] } == 1 
       end # it "should output one"
-      it "should have a counter of 6" do
-        config = {"counter" => ["six"], "counter_interval => 0"}
+      it "random counter test" do
+        config = {"counter" => ["six"], "count_interval" => 0}
         filter = LogStash::Filters::IntervalMetric.new config
         filter.register
-        for i in 0..6
+        r = rand(2..100)
+        for i in 1..r
           filter.filter LogStash::Event.new({"response" => i})
-        end # for i in 0..6
+        end # for i in 0..r
         event = filter.flush
         insist { event.length } == 1
-        insist { event.first["six.count"] } == 6
+        insist { event.first["six.count"] } == r
       end # it "should output 6"
     end # context "when one event was received"
     context "when one event was received" do 
