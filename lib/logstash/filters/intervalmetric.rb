@@ -114,8 +114,8 @@ end # class LogStash::Filters::Example
 class IntervalCounter
   def initialize
     @random_key_prefix = SecureRandom.hex
-    @curr_counter = Metrik.counter("#{@random_key_prefix}_curr")
-    @past_counter = Metrik.counter("#{@random_key_prefix}_past")
+    @curr_counter = Metriks.counter("#{@random_key_prefix}_curr")
+    @past_counter = Metriks.counter("#{@random_key_prefix}_past")
   end # initialize
   def get(s)
     if s == "curr"
