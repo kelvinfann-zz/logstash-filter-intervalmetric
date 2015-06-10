@@ -20,7 +20,6 @@ describe LogStash::Filters::IntervalMetric do
         filter.filter LogStash::Event.new({"response" => 200})
         filter.flush
         filter.flush
-        filter.flush
       } 
       it "should have a counter of 1" do
         insist { subject.length } == 1
