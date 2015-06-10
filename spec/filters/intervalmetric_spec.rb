@@ -39,6 +39,21 @@ describe LogStash::Filters::IntervalMetric do
     end # context "when one event was received"
     context "when one event was received" do 
     end # context "when multiple events were received"
-
+    context "when we have different counters" do
+      subject {
+        config = {"counter" => ["%{response}"], "count_interval" => -5}
+        filter = LogStash::Filters::IntervalMetric.new config
+        filter.register
+        filter.filter LogStash::Event.new({"response" => 200})
+        filter.filter LogStash::Event.new({"response" => 400})
+        filter.filter LogStash::Event.new({"response" => 200})
+        filter.flush
+      } 
+      it "should have a counter of 1" do
+        insist { subject.length } == 1
+        insist { subject.first["200.count"] } == 2
+        inisit { subject.first["400.count"] } == 1 
+      end # it "should have multiple counters"          
+    end # context "when we have different counters"
   end # context "basic counter"
 end # describe Logstash::Filters:IntervalMetric
