@@ -39,19 +39,21 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     require "socket"
     require "atomic"
     require "thread_safe"
+    if @count_interval <= 0
+       @count_interval = 5 
+    end # @counter_interval <= 0
     @last_flush = Atomic.new(0) # how many seconds ago the metrics were flushed
     @last_clear = Atomic.new(0) # how many seconds ago the metrics were cleared
-    @random_key_preffix = SecureRandom.hex
+    @random_key_prefix = SecureRandom.hex
     @metric_counter = ThreadSafe::Cache.new { |h,k| h[k] = Metriks.counter(metric_key(k)) }
-    @start_time = get_start_interval() 
-    @last_time = @start_time - @count_interval
-    @last_time_count = Atomic.new(0) # the count of last time
+    @metric_i_counter = ThreadSafe::Cache.new { |h,k| h[k] = IntervalCounter.new() }
+    @curr_interval_time = get_start_interval() 
+    @last_count = Atomic.new(0)
   end # def register
 
   public
   def filter(event)
     return unless filter?(event)
-
     @counter.each do |c|
       @metric_counter[event.sprintf(c)].increment() 
     end # @counter.each
@@ -73,8 +75,8 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     end # @metric_counter.each_pair
 
     # to compensate the offset rather 
-    @last_flush.value = @last_flush.value - @count_interval
-    @last_clear.value = @last_clear.value - @count_interval
+    @last_flush.value = @last_flush.value % @count_interval
+    @last_clear.value = @last_clear.value % @count_interval
     filter_matched(event) # last line of our successful code
     return [event]
   end # def flush
@@ -91,7 +93,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   end # def flush_rates
 
   def metric_key(key)
-    "#{@random_key_preffix}_#{key}"
+    "#{@random_key_prefix}_#{key}"
   end # def metric_key
 
   def should_flush?
@@ -107,3 +109,35 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   end # get_start_interval
 
 end # class LogStash::Filters::Example
+
+class IntervalCounter
+  def initialize
+    @random_key_prefix = SecureRandom.hex
+    @curr_counter = Metrik.counter("#{@random_key_prefix}_curr")
+    @past_counter = Metrik.counter("#{@random_key_prefix}_past")
+  end # initialize
+  def get(s)
+    if s == "curr"
+      return @curr_counter
+    elsif s == "past"
+      return @past_counter
+    end
+    return nil
+  end # get(s)
+  def clear(s)
+    counter = get(s)
+    return counter.clear
+  end # def clear
+  def increment(s)
+    counter = get(s)
+    return counter.increment
+  end # def increment
+  def decrement(s)
+    counter = get(s)
+    return counter.decrement
+  end # def decrement
+  def count(s)
+    counter = get(s)
+    return counter.count
+  end # def count
+end # class IntervalCounter
