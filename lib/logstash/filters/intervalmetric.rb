@@ -30,6 +30,8 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   # delayed by 5 seconds.
   config :count_interval, :validate => :number, :default => 600
 
+  # The starting time of the interval
+  config :interval_start, :validate => :number, :default => 0
 
   public
   def register
@@ -41,7 +43,9 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     @last_clear = Atomic.new(0) # how many seconds ago the metrics were cleared
     @random_key_preffix = SecureRandom.hex
     @metric_counter = ThreadSafe::Cache.new { |h,k| h[k] = Metriks.counter(metric_key(k)) }
-    @start_time = Time.now
+    @start_time = get_start_interval() 
+    @last_time = @start_time - @count_interval
+    @last_time_count = Atomic.new(0) # the count of last time
   end # def register
 
   public
@@ -68,7 +72,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
       flush_rates(event, name, metric)
     end # @metric_counter.each_pair
 
-    #to compensate the offset
+    # to compensate the offset rather 
     @last_flush.value = @last_flush.value - @count_interval
     @last_clear.value = @last_clear.value - @count_interval
     filter_matched(event) # last line of our successful code
@@ -93,5 +97,13 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   def should_flush?
     @last_flush.value > @count_interval && !@metric_counter.empty?
   end # def should_flush
+  
+  def get_start_interval()
+    start_time = Time.local(Time.now.year, Time.now.month, Time.now.day)
+    while start_time + @count_interval < Time.now
+      start_time += @count_interval
+    end # while start_time + @count_interval < Time.now
+    return start_time
+  end # get_start_interval
 
 end # class LogStash::Filters::Example
