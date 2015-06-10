@@ -56,6 +56,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     return unless filter?(event)
     @counter.each do |c|
       @metric_counter[event.sprintf(c)].increment() 
+      @metric_i_counter[event.sprintf(c)].increment("curr") 
     end # @counter.each
 
   end # def filter
