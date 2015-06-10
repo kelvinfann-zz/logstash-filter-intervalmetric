@@ -71,7 +71,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     event = LogStash::Event.new
     event["message"] = Socket.gethostname
     
-    @metric_counter.each_pair do |name, metric|
+    @metric_i_counter.each_pair do |name, metric|
       flush_rates(event, name, metric)
     end # @metric_counter.each_pair
 
@@ -90,7 +90,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   end # def periodic_flush
 
   def flush_rates(event, name, metric)
-    event["#{name}.count"] = metric.count
+    event["#{name}.count"] = metric.count('curr')
   end # def flush_rates
 
   def metric_key(key)
