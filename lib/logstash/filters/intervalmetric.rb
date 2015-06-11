@@ -40,7 +40,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     require "atomic"
     require "thread_safe"
     if @count_interval <= 0
-       @count_interval = 5 
+      @count_interval = 5 
     end # @counter_interval <= 0
     @last_flush = Atomic.new(0) # how many seconds ago the metrics were flushed
     @last_clear = Atomic.new(0) # how many seconds ago the metrics were cleared
@@ -72,8 +72,15 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     event = LogStash::Event.new
     event["message"] = Socket.gethostname
     
-    @metric_counter.each_pair do |name, metric|
-      flush_rates(event, name, metric)
+    @metric_counter.each_pair do |extended_name, metric|
+      expanded_name = extended_name.reverse.split('_', 2).map(&:reverse)
+      name = expanded_name[1]
+      interval_time = Time.local(expanded_name[0].to_s)
+      if interval_time == @curr_interval_time.value - @count_interval
+        flush_rates(event, name, metric)
+        @metric_counter.delete(extended_name)
+      end # interval == @curr_interval_time
+      
     end # @metric_counter.each_pair
 
     # to compensate the offset rather 
@@ -93,7 +100,6 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   end # def periodic_flush
 
   def flush_rates(event, name, metric)
-    true_name = name.split('_')[0]
     event["#{true_name}.count"] = metric.count
     event["name"] = name
   end # def flush_rates
@@ -116,35 +122,3 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
 
 end # class LogStash::Filters::Example
 
-class IntervalCounter
-  def initialize(interval_time, count_interval)
-    @random_key_prefix = SecureRandom.hex
-    @curr_counter = Metriks.counter("#{@random_key_prefix}_#{interval_time.to_s}")
-    interval_time_prev = interval_time - count_interval
-    @past_counter = Metriks.counter("#{@random_key_prefix}_#{interval_time_prev.to_s}")
-  end # initialize
-  def get(s)
-    if s == "curr"
-      return @curr_counter
-    elsif s == "past"
-      return @past_counter
-    end
-    return nil
-  end # get(s)
-  def clear(s)
-    counter = get(s)
-    return counter.clear
-  end # def clear
-  def increment(s)
-    counter = get(s)
-    return counter.increment
-  end # def increment
-  def decrement(s)
-    counter = get(s)
-    return counter.decrement
-  end # def decrement
-  def count(s)
-    counter = get(s)
-    return counter.count
-  end # def count
-end # class IntervalCounter
