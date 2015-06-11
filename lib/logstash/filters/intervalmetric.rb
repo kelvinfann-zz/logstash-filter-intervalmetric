@@ -44,21 +44,22 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     end # @counter_interval <= 0
     @last_flush = Atomic.new(0) # how many seconds ago the metrics were flushed
     @last_clear = Atomic.new(0) # how many seconds ago the metrics were cleared
+    @curr_interval_time = Atomic.new(get_start_interval())
     @random_key_prefix = SecureRandom.hex
-    @metric_counter = ThreadSafe::Cache.new { |h,k| h[k] = Metriks.counter(metric_key(k)) }
-    @metric_i_counter = ThreadSafe::Cache.new { |h,k| h[k] = IntervalCounter.new() }
-    @curr_interval_time = get_start_interval() 
-    @last_count = Atomic.new(0)
+    @metric_counter = ThreadSafe::Cache.new { |h,k| h[k] = Metriks.counter metric_key(k) } 
   end # def register
 
   public
   def filter(event)
     return unless filter?(event)
+    if event['@timestamp'] < @curr_interval_time.value
+      interval = @curr_interval_time.value - @count_interval
+    else
+      interval = @curr_interval_time.value
+    end # if event['@timestamp'] < @curr_interval_time
     @counter.each do |c|
-      @metric_counter[event.sprintf(c)].increment() 
-      @metric_i_counter[event.sprintf(c)].increment("curr") 
+      @metric_counter["#{event.sprintf(c)}_#{interval.to_s}"].increment 
     end # @counter.each
-
   end # def filter
   
   public
@@ -71,13 +72,15 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     event = LogStash::Event.new
     event["message"] = Socket.gethostname
     
-    @metric_i_counter.each_pair do |name, metric|
-      flush_rates(event, name, metric)
+    @metric_counter.each_pair do |name, metric|
+      flush_rates(event, name, metric, @curr_interval_time - @count_interval)
     end # @metric_counter.each_pair
 
     # to compensate the offset rather 
     @last_flush.value = @last_flush.value % @count_interval
     @last_clear.value = @last_clear.value % @count_interval
+    @curr_interval_time += @count_interval
+
     filter_matched(event) # last line of our successful code
     return [event]
   end # def flush
@@ -89,8 +92,10 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     true
   end # def periodic_flush
 
-  def flush_rates(event, name, metric)
-    event["#{name}.count"] = metric.count('curr')
+  def flush_rates(event, name, metric, interval)
+    true_name = name.split('_')[0]
+    event["#{true_name}.count"] = metric.count
+    event["name"] = name
   end # def flush_rates
 
   def metric_key(key)
@@ -112,10 +117,11 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
 end # class LogStash::Filters::Example
 
 class IntervalCounter
-  def initialize
+  def initialize(interval_time, count_interval)
     @random_key_prefix = SecureRandom.hex
-    @curr_counter = Metriks.counter("#{@random_key_prefix}_curr")
-    @past_counter = Metriks.counter("#{@random_key_prefix}_past")
+    @curr_counter = Metriks.counter("#{@random_key_prefix}_#{interval_time.to_s}")
+    interval_time_prev = interval_time - count_interval
+    @past_counter = Metriks.counter("#{@random_key_prefix}_#{interval_time_prev.to_s}")
   end # initialize
   def get(s)
     if s == "curr"
