@@ -39,11 +39,11 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     require "socket"
     require "atomic"
     require "thread_safe"
+    require "time"
     if @count_interval <= 0
       @count_interval = 5 
     end # @counter_interval <= 0
     @last_flush = Atomic.new(0) # how many seconds ago the metrics were flushed
-    @last_clear = Atomic.new(0) # how many seconds ago the metrics were cleared
     @curr_interval_time = Atomic.new(get_start_interval())
     @random_key_prefix = SecureRandom.hex
     @metric_counter = ThreadSafe::Cache.new { |h,k| h[k] = Metriks.counter metric_key(k) } 
@@ -65,7 +65,6 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   public
   def flush(options = {})
     @last_flush.update { |v| v + 5 }
-    @last_clear.update { |v| v + 5 }
     
     return unless should_flush?
 
@@ -75,7 +74,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     @metric_counter.each_pair do |extended_name, metric|
       expanded_name = extended_name.reverse.split('_', 2).map(&:reverse)
       name = expanded_name[1]
-      interval_time = Time.local(expanded_name[0].to_s)
+      interval_time = Time.parse(expanded_name[0].to_s)
       if interval_time == @curr_interval_time.value - @count_interval
         flush_rates(event, name, metric)
         @metric_counter.delete(extended_name)
@@ -85,7 +84,6 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
 
     # to compensate the offset rather 
     @last_flush.value = @last_flush.value % @count_interval
-    @last_clear.value = @last_clear.value % @count_interval
     @curr_interval_time.update { |v| v + @count_interval }
 
     filter_matched(event) # last line of our successful code
@@ -100,7 +98,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   end # def periodic_flush
 
   def flush_rates(event, name, metric)
-    event["#{true_name}.count"] = metric.count
+    event["#{name}.count"] = metric.count
     event["name"] = name
   end # def flush_rates
 

@@ -20,6 +20,8 @@ describe LogStash::Filters::IntervalMetric do
         filter.filter LogStash::Event.new({"response" => 200})
         filter.flush
         filter.flush
+        filter.flush
+        filter.flush
       } 
       it "should have a counter of 1" do
         insist { subject.length } == 1
@@ -33,6 +35,8 @@ describe LogStash::Filters::IntervalMetric do
         for i in 1..r
           filter.filter LogStash::Event.new({"response" => i})
         end # for i in 0..r
+        event = filter.flush
+        event = filter.flush
         event = filter.flush
         event = filter.flush
         insist { event.length } == 1
@@ -49,6 +53,8 @@ describe LogStash::Filters::IntervalMetric do
         filter.filter LogStash::Event.new({"response" => 200})
         filter.filter LogStash::Event.new({"response" => 400})
         filter.filter LogStash::Event.new({"response" => 200})
+        filter.flush
+        filter.flush
         filter.flush
         filter.flush
       } 
