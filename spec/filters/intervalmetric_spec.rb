@@ -27,7 +27,9 @@ describe LogStash::Filters::IntervalMetric do
         insist { subject.length } == 1
         insist { subject.first["one.count"] } == 1 
       end # it "should output one"
-      it "random counter test" do
+    end # context "when one event was received"
+    context "When random num events are recieved"
+       it "should get a random counter" do
         config = {"counter" => ["Random"], "count_interval" => 10}
         filter = LogStash::Filters::IntervalMetric.new config
         filter.register
@@ -40,24 +42,49 @@ describe LogStash::Filters::IntervalMetric do
         end
         insist { event.length } == 1
         insist { event.first["Random.count"] } == r
-      end # it "should output 6"
-    end # context "when one event was received"
-    context "when multiple empty event is received" do
-      it "should not do anything" do
-        config = {"counter" => ["%{response}"], "count_interval" => 10}
+      end # it "should get a random counter"
+    end # context "When random num events are recieved"
+    context "when a random interval is set and only 1 event" do
+      it "should delete that event after two intervals" do
+        count_interval = rand(1..100)
+        config = {"counter" => ["%{response}"], "count_interval" => count_interval*5}
         filter = LogStash::Filters::IntervalMetric.new config
         filter.register
         filter.filter LogStash::Event.new({"response" => 200})
-        for i in 1..rand(2..100)
+        for _ in 1..count_interval-1
+          event = filter.flush
+        end # for _ in 1..count_interval-1
+        for i in count_interval..rand(count_interval*2+1..300)
           events = filter.flush
-          if i*5 % 10 != 5
+          if i*5 % (5*count_interval) != 5 || i > count_interval*2 + 1
             insist { event }.nil? 
           else
             insist { event } != nil
-          end # if i*5
-        end # for i in 1..r
-      end # it "should not do anything"
-    end # context "no events were receieved"
+          end # if i*5 % ...
+        end # for i in count_interval..rand( ...
+      end # it "should produce nil on all times except interval+5" do
+    end # context "when a random interval is set" do 
+    context "when a random interval is set" do
+      it "should produce nil on all times except interval+5" do
+        count_interval = rand(1..100)
+        config = {"counter" => ["%{response}"], "count_interval" => count_interval*5}
+        filter = LogStash::Filters::IntervalMetric.new config
+        filter.register
+        filter.filter LogStash::Event.new({"response" => 200})
+        for _ in 1..count_interval-1
+          event = filter.flush
+        end # for _ in 1..count_interval-1
+        for i in count_interval..rand(count_interval+1..100)
+          filter.filter LogStash::Event.new({"response" => 200})
+          events = filter.flush
+          if i*5 % (5*count_interval) != 5
+            insist { event }.nil? 
+          else
+            insist { event } != nil
+          end # if i*5 % ...
+        end # for i in count_interval..rand( ...
+      end # it "should produce nil on all times except interval+5" do
+    end # context "when a random interval is set" do
     context "when we have different counters" do
       subject {
         config = {"counter" => ["%{response}"], "count_interval" => 10}
