@@ -40,8 +40,8 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     require "atomic"
     require "thread_safe"
     require "time"
-    if @count_interval <= 0
-      @count_interval = 5 
+    if @count_interval <= 5
+      @count_interval = 10 
     end # @counter_interval <= 0
     @last_flush = Atomic.new(0) # how many seconds ago the metrics were flushed
     @curr_interval_time = Atomic.new(get_start_interval())
