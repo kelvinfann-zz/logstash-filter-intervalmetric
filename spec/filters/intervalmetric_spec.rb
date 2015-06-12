@@ -18,9 +18,10 @@ describe LogStash::Filters::IntervalMetric do
         filter = LogStash::Filters::IntervalMetric.new config
         filter.register
         filter.filter LogStash::Event.new({"response" => 200})
-        for _ in 1..5
+        for _ in 1..4
           filter.flush
         end
+        filter.flush
       } 
       it "should have a counter of 1" do
         insist { subject.length } == 1
@@ -49,9 +50,10 @@ describe LogStash::Filters::IntervalMetric do
         filter.filter LogStash::Event.new({"response" => 200})
         filter.filter LogStash::Event.new({"response" => 400})
         filter.filter LogStash::Event.new({"response" => 200})
-        for _ in 1..5
+        for _ in 1..4
           filter.flush
         end 
+        filter.flush
       } 
       it "should have a counter of 1" do
         insist { subject.length } == 1
@@ -67,9 +69,10 @@ describe LogStash::Filters::IntervalMetric do
         filter.filter LogStash::Event.new({"response" => 200})
         filter.filter LogStash::Event.new({"response" => 400})
         filter.filter LogStash::Event.new({"response" => 200})
-         for _ in 1..5
+         for _ in 1..4
           filter.flush
         end 
+        filter.flush
       } 
       it "should have a counter of 1" do
         insist { subject.length } == 1
@@ -85,9 +88,10 @@ describe LogStash::Filters::IntervalMetric do
         filter.filter LogStash::Event.new({"response" => 200})
         filter.filter LogStash::Event.new({"response" => 400})
         filter.filter LogStash::Event.new({"response" => 200})
-        for _ in 1..7 
+        for _ in 1..12 
           filter.flush
         end
+        filter.flush
       } 
       it "Should have the same output as when we have different counters" do
         insist { subject.length } == 1
