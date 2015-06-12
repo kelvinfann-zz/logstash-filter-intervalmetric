@@ -70,18 +70,21 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
 
     event = LogStash::Event.new
     event["message"] = Socket.gethostname
+    event["tag"] = "intervalcounter msg"
     
+    has_values = false
     @metric_counter.each_pair do |extended_name, metric|
       expanded_name = extended_name.reverse.split('_', 2).map(&:reverse)
       name = expanded_name[1]
       interval_time = Time.parse(expanded_name[0].to_s)
-      if interval_time == @curr_interval_time.value - @count_interval
-        flush_count(event, name, metric)
+      if interval_time < @curr_interval_time.value
+        flush_count(event, name, interval_time, metric)
         @metric_counter.delete(extended_name)
+        has_values = true
       end # interval == @curr_interval_time
-      
     end # @metric_counter.each_pair
 
+    event["has_values"] = has_values
     # to compensate the offset rather 
     @last_flush.update { |v| v % @count_interval }
     @curr_interval_time.update { |v| v + @count_interval }
@@ -97,8 +100,9 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     true
   end # def periodic_flush
 
-  def flush_count(event, name, metric)
+  def flush_count(event, name, interval, metric)
     event["#{name}.count"] = metric.count
+    event["#{name}.interval"] = interval
   end # def flush_rates
 
   def metric_key(key)
@@ -106,7 +110,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   end # def metric_key
 
   def should_flush?
-    @last_flush.value > @count_interval && !@metric_counter.empty?
+    @last_flush.value > @count_interval
   end # def should_flush
   
   def get_start_interval()
