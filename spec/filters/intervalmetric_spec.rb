@@ -18,7 +18,7 @@ describe LogStash::Filters::IntervalMetric do
         filter = LogStash::Filters::IntervalMetric.new config
         filter.register
         filter.filter LogStash::Event.new({"response" => 200})
-        for _ in 1..4
+        for _ in 1..5
           filter.flush
         end
       } 
@@ -34,7 +34,7 @@ describe LogStash::Filters::IntervalMetric do
         for i in 1..r
           filter.filter LogStash::Event.new({"response" => i})
         end # for i in 0..r
-        for _ in 1..4
+        for _ in 1..5
             event = filter.flush
         end
         insist { event.length } == 1
@@ -49,7 +49,7 @@ describe LogStash::Filters::IntervalMetric do
         filter.filter LogStash::Event.new({"response" => 200})
         filter.filter LogStash::Event.new({"response" => 400})
         filter.filter LogStash::Event.new({"response" => 200})
-        for _ in 1..4
+        for _ in 1..5
           filter.flush
         end 
       } 
@@ -67,7 +67,7 @@ describe LogStash::Filters::IntervalMetric do
         filter.filter LogStash::Event.new({"response" => 200})
         filter.filter LogStash::Event.new({"response" => 400})
         filter.filter LogStash::Event.new({"response" => 200})
-         for _ in 1..4
+         for _ in 1..5
           filter.flush
         end 
       } 
