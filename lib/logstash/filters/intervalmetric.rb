@@ -76,7 +76,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
       name = expanded_name[1]
       interval_time = Time.parse(expanded_name[0].to_s)
       if interval_time == @curr_interval_time.value - @count_interval
-        flush_rates(event, name, metric)
+        flush_count(event, name, metric)
         @metric_counter.delete(extended_name)
       end # interval == @curr_interval_time
       
@@ -97,9 +97,8 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     true
   end # def periodic_flush
 
-  def flush_rates(event, name, metric)
+  def flush_count(event, name, metric)
     event["#{name}.count"] = metric.count
-    event["name"] = name
   end # def flush_rates
 
   def metric_key(key)
