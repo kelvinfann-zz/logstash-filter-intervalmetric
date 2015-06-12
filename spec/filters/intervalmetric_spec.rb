@@ -55,7 +55,7 @@ describe LogStash::Filters::IntervalMetric do
           event = filter.flush
         end # for _ in 1..count_interval-1
         for i in count_interval..rand(count_interval*2+1..300)
-          events = filter.flush
+          event = filter.flush
           if i*5 % (5*count_interval) != 5 || i > count_interval*2 + 1
             insist { event }.nil? 
           else
@@ -76,8 +76,8 @@ describe LogStash::Filters::IntervalMetric do
         end # for _ in 1..count_interval-1
         for i in count_interval..rand(count_interval+1..100)
           filter.filter LogStash::Event.new({"response" => 200})
-          events = filter.flush
-          if i*5 % (5*count_interval) != 5
+          event = filter.flush
+          if i % count_interval != 1 
             insist { event }.nil? 
           else
             insist { event } != nil

@@ -83,7 +83,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     end # @metric_counter.each_pair
 
     # to compensate the offset rather 
-    @last_flush.value = @last_flush.value % @count_interval
+    @last_flush.update { |v| v % @count_interval }
     @curr_interval_time.update { |v| v + @count_interval }
 
     filter_matched(event) # last line of our successful code
