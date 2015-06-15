@@ -28,10 +28,16 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   # count_interval is the time interval that the counters count till 
   # It also determines the flush_interval, which is the same, but is
   # delayed by 5 seconds.
+  # syntax: `count_interval => `\int`
   config :count_interval, :validate => :number, :default => 600
 
   # The starting time of the interval
   config :interval_start, :validate => :number, :default => 0
+
+  # the default metrics you want to keep track of
+  config :persist_counters, :validate => :array, :default => []
+
+  config :time_indicator, :validate => :string, :default => '@timestamp'
 
   public
   def register
@@ -44,7 +50,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
       @count_interval = 10 
     end # @counter_interval <= 0
     @last_flush = Atomic.new(0) # how many seconds ago the metrics were flushed
-    @curr_interval_time = Atomic.new(get_start_interval())
+    @curr_interval_time = Atomic.new(get_time_interval(Time.now))
     @random_key_prefix = SecureRandom.hex
     @metric_counter = ThreadSafe::Cache.new { |h,k| h[k] = Metriks.counter metric_key(k) } 
   end # def register
@@ -52,11 +58,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   public
   def filter(event)
     return unless filter?(event)
-    if event['@timestamp'] < @curr_interval_time.value
-      interval = @curr_interval_time.value - @count_interval
-    else
-      interval = @curr_interval_time.value
-    end # if event['@timestamp'] < @curr_interval_time
+    interval = get_time_interval(event[@time_indicator])
     @counter.each do |c|
       @metric_counter["#{event.sprintf(c)}_#{interval.to_s}"].increment 
     end # @counter.each
@@ -68,13 +70,18 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     
     return unless should_flush?
 
+    now = Time.now()
+
     event = LogStash::Event.new
     event["message"] = Socket.gethostname
-    event["tag"] = "intervalcounter msg"
+    event["date"] = now)
     
     has_values = false
+    @persist_counters.each do |c|
+      #event["#{c}.count"] = { @curr_interval_time.value => 0 }
+    end # @counter.each
     @metric_counter.each_pair do |extended_name, metric|
-      expanded_name = extended_name.reverse.split('_', 2).map(&:reverse)
+      expanded_name = extended_name.reverse.split('_', 2).map(&:reverse) # spliting by the last '_'
       name = expanded_name[1]
       interval_time = Time.parse(expanded_name[0].to_s)
       if interval_time < @curr_interval_time.value
@@ -102,7 +109,6 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
 
   def flush_count(event, name, interval, metric)
     event["#{name}.count"] = metric.count
-    event["#{name}.interval"] = interval
   end # def flush_rates
 
   def metric_key(key)
@@ -112,14 +118,13 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   def should_flush?
     @last_flush.value > @count_interval
   end # def should_flush
-  
-  def get_start_interval()
-    start_time = Time.local(Time.now.year, Time.now.month, Time.now.day)
-    while start_time + @count_interval < Time.now
-      start_time += @count_interval
-    end # while start_time + @count_interval < Time.now
-    return start_time
-  end # get_start_interval
 
+  def get_time_interval(time)
+    seconds = (time.sec 
+      + time.min * 60
+      + time.hour * 60 * 60)
+    interval = (seconds / @count_interval).to_i * @count_interval
+    return time - seconds + interval
+  end # get_time_interval
 end # class LogStash::Filters::Example
 
