@@ -1,0 +1,90 @@
+#! /bin/bash
+
+#SETTING UP VARS
+
+CURR_DIR=$(pwd)
+LOGSTASH_VERSION="1.5.0"
+LOGSTASH_DL_LINK="https://download.elastic.co/logstash/logstash/logstash-${LOGSTASH_VERSION}.tar.gz"
+
+# CREATING TESTING DIRECTORY
+mkdir ../logstash_test
+cd ../logstash_test
+TEST_DIR=$(pwd)
+
+CONFIG0='
+input{
+    stdin{}
+}
+filter{
+    intervalmetric {
+        counter => ["Hi"]
+    }
+}
+output{
+    stdout{}
+}
+'
+CONFIG1='
+input{
+    file{ 
+        path => "'${TEST_DIR}'/input_files/*" 
+        start_position => "beginning"
+        delimiter => " "
+    }
+}
+filter{
+    intervalmetric{
+        counter => "[%{message}]"
+        count_interval => 10
+    }
+}
+output{
+    stdout{
+        codec => "rubydebug"
+    }
+}
+'
+
+#echo $CONFIG1
+
+
+# INSTALLING A PORTABLE LOGSTASH
+
+cd $TEST_DIR
+curl -O ${LOGSTASH_DL_LINK} 
+tar -zxf logstash-${LOGSTASH_VERSION}.tar.gz
+rm logstash-${LOGSTASH_VERSION}.tar.gz
+mv logstash-${LOGSTASH_VERSION} logstash
+
+# BUILDING FILTER INTO LOGSTASH
+
+cd $CURR_DIR
+gem build logstash-filter-intervalmetric.gemspec
+$TEST_DIR/logstash/bin/plugin install logstash-filter-intervalmetric-*.gem
+
+
+# CREATING FILES TO TEST
+
+cd $TEST_DIR
+mkdir input_files
+
+for i in $(seq 1 10); do
+    for _ in $(seq 1 10000); do
+        echo $i >> $TEST_DIR/input_files/$i.txt
+    done
+done
+
+# RUNNING LOGSTASH
+
+cd $TEST_DIR
+logstash/bin/logstash -e $CONFIG0 &
+PID=$!
+sleep 60
+kill $PID
+
+# REMOVING CREATED FILES
+
+cd $CURR_DIR
+rm $CURR_DIR/*.gem
+sudo rm -r $TEST_DIR
+echo 'done'
