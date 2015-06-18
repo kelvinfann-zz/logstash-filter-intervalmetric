@@ -12,6 +12,23 @@ describe LogStash::Filters::IntervalMetric do
         insist { events }.nil? 
       end # it "should not do anything"
     end # context "no events were receieved"
+    context "when nothing should be counted" do
+      subject {
+        config = {"counter" => ["one"], "count_interval" => 30}
+        filter = LogStash::Filters::IntervalMetric.new config
+        filter.register
+        filter.filter LogStash::Event.new({"response" => 200})
+        for _ in 1..6
+          filter.flush
+        end
+        filter.flush
+      } 
+      it "should have a counter of 1" do
+        insist { subject.length } == 1
+        insist { subject.first["one.count"].first[1] } == 0  
+      end # it "should output one"
+    end # context "when one event was received"
+    
     context "when one event was received" do
       subject {
         config = {"counter" => ["one"], "count_interval" => 10}

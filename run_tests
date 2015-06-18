@@ -12,17 +12,11 @@ cd ../logstash_test
 TEST_DIR=$(pwd)
 
 CONFIG0='
-input{
-    stdin{}
-}
+input{stdin{}}
 filter{
-    intervalmetric {
-        counter => ["Hi"]
-    }
+    intervalmetric {}
 }
-output{
-    stdout{}
-}
+output{stdout{}}
 '
 CONFIG1='
 input{
@@ -34,19 +28,45 @@ input{
 }
 filter{
     intervalmetric{
-        counter => "[%{message}]"
-        count_interval => 10
+        counter => "%{message}"
+        count_interval => 30
+        add_tag => "im"
+    }
+    metrics{
+        meter => "%{message}"
+        add_tag => "m"
+        rates => []
+        flush_interval => 35 
     }
 }
 output{
-    stdout{
-        codec => "rubydebug"
+    if "m" in [tags]{
+        file{
+            path => "'${TEST_DIR}'/output_files/metrics"
+            codec => "rubydebug"
+        }
+   }
+    if "im" in [tags]{
+        file{
+            path => "'${TEST_DIR}'/output_files/intervalmetrics"
+            codec => "rubydebug"
+        }
+        stdout{
+            codec => "rubydebug"
+        }
+ 
     }
+
 }
 '
 
 #echo $CONFIG1
 
+# Calling sudo early so it doesn't get burried by the stdout
+
+cd $TEST_DIR
+touch hi
+sudo rm hi
 
 # INSTALLING A PORTABLE LOGSTASH
 
@@ -67,20 +87,27 @@ $TEST_DIR/logstash/bin/plugin install logstash-filter-intervalmetric-*.gem
 
 cd $TEST_DIR
 mkdir input_files
-
 for i in $(seq 1 10); do
-    for _ in $(seq 1 10000); do
+    for _ in $(seq 1 50000); do
         echo $i >> $TEST_DIR/input_files/$i.txt
     done
+    wc $TEST_DIR/input_files/$i.txt
 done
 
 # RUNNING LOGSTASH
 
 cd $TEST_DIR
-logstash/bin/logstash -e $CONFIG0 &
+mkdir output_files
+echo "running: $CONFIG0"
+logstash/bin/logstash -e "$CONFIG0" & 
+echo "running: $CONFIG1"
+logstash/bin/logstash -e "$CONFIG1" &
 PID=$!
 sleep 60
 kill $PID
+ls $TEST_DIR/output_files/
+cat $TEST_DIR/output_files/*
+
 
 # REMOVING CREATED FILES
 
