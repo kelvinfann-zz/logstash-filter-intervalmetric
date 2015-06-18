@@ -25,7 +25,7 @@ describe LogStash::Filters::IntervalMetric do
       } 
       it "should have a counter of 1" do
         insist { subject.length } == 1
-        insist { subject.first["one.count"].first[1] } == 0  
+        insist { subject.first["one.count"] }.nil?  
       end # it "should output one"
     end # context "when one event was received"
     
