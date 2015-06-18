@@ -124,7 +124,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   # usecs. 
   def get_start_interval()
     now = Time.now.utc
-    start_interval = Time.local(now.year, now.month, now.day).utc
+    start_interval = Time.gm(now.year, now.month, now.day).utc
     while start_interval + @count_interval < now
       start_interval += @count_interval
     end #while
