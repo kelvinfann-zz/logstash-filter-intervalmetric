@@ -49,6 +49,19 @@ def parse_intervalmetric_file(filename):
     f.close()
     return interval_metric
 
+def parse_intervalmetric_has_values(log):
+    if '"has_values":true' in log:
+        return True
+    return False
+
+def parse_intervalmetric_file_has_values(filename):
+    has_values = False
+    f = open(filename, 'r')
+    for log in f:
+        has_values = parse_intervalmetric_has_values(log)
+    f.close()
+    return has_values
+
 def compare_logfiles(interval_file, metric_file):
     interval_metric = parse_intervalmetric_file(interval_file)
     metric = parse_metric_file(metric_file)
@@ -76,6 +89,9 @@ def main():
         intervalmetric_filename = str(sys.argv[2])
         metric_filename = str(sys.argv[3])
         print compare_logfiles(intervalmetric_filename, metric_filename)
+    elif command == "track" and len(sys.argv) == 3:
+        filename = str(sys.argv[2])
+        print parse_intervalmetric_file_has_values(filename)
     else:
         raise ValueError("bad params")
 

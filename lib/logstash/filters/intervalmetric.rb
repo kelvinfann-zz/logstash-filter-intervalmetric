@@ -143,5 +143,9 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   def convert_to_ms(time)
     return (time.to_f * 1000).to_i
   end # convert_to_ms
+  def teardown
+    @last_flush.update {|v| v + @count_interval}
+    flush()
+  end # teardown
 end # class LogStash::Filters::Example
 
