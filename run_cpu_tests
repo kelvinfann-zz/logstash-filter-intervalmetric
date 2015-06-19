@@ -66,25 +66,25 @@ cd $TEST_DIR
 mkdir input_files
 mkdir output_files
 echo "running: $CONFIG1"
-logstash/bin/logstash -e "$CONFIG0" &
+logstash/bin/logstash -e "$CONFIG1" &
 PID=$!
 SLEEP_TIME=180
 while true; do
-	echo "one iter started"
-	for i in $(seq 1 15); do
-	    python $PYTHON_SCRIPT generatefile "$TEST_DIR/input_files/$i.txt" "$RANDOM" 500000
-	    wc $TEST_DIR/input_files/$i.txt
-	done
-	sleep $SLEEP_TIME
-	for i in $(seq 1 15); do
-	    > $TEST_DIR/input_files/$i.txt
-	    wc $TEST_DIR/input_files/$i.txt
-	done
-	if $(python $PYTHON_SCRIPT track $TEST_DIR/output_files/intervalmetrics.log); then
-		((SLEEP_TIME += 5))
-	else
-		((SLEEP_TIME -= 5))
-	fi
-	echo $SLEEP_TIME
+    echo "one iter started"
+    for i in $(seq 1 15); do
+        python $PYTHON_SCRIPT generatefile "$TEST_DIR/input_files/$i.txt" "$RANDOM" 500000
+        wc $TEST_DIR/input_files/$i.txt
+    done
+    sleep $SLEEP_TIME
+    for i in $(seq 1 15); do
+        > $TEST_DIR/input_files/$i.txt
+        wc $TEST_DIR/input_files/$i.txt
+    done
+    if $(python $PYTHON_SCRIPT track $TEST_DIR/output_files/intervalmetrics.log); then
+        ((SLEEP_TIME += 5))
+    else
+        ((SLEEP_TIME -= 5))
+    fi
+    echo $SLEEP_TIME
 done
 

@@ -1,7 +1,7 @@
 #! /bin/bash
 
 #SETTING UP VARS
-
+. test_utils
 CURR_DIR=$(pwd)
 LOGSTASH_VERSION="1.5.0"
 LOGSTASH_DL_LINK="https://download.elastic.co/logstash/logstash/logstash-${LOGSTASH_VERSION}.tar.gz"
@@ -68,11 +68,7 @@ sudo rm hi
 
 # INSTALLING A PORTABLE LOGSTASH
 
-cd $TEST_DIR
-curl -O ${LOGSTASH_DL_LINK} 
-tar -zxf logstash-${LOGSTASH_VERSION}.tar.gz
-rm logstash-${LOGSTASH_VERSION}.tar.gz
-mv logstash-${LOGSTASH_VERSION} logstash
+download_logstash $TEST_DIR
 
 # BUILDING FILTER INTO LOGSTASH
 
