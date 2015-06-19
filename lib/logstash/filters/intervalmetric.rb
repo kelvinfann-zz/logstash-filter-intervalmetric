@@ -146,6 +146,9 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   def teardown
     @last_flush.update {|v| v + @count_interval}
     flush()
+    @last_flush.update {|v| v + @count_interval}
+    flush()
+    
   end # teardown
 end # class LogStash::Filters::Example
 

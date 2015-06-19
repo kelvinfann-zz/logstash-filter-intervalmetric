@@ -25,10 +25,34 @@ generate_input_files() {
     PYTHON_SCRIPT=$2
     NUM_FILES=$3
     NUM_MSGS=$4
+    cd $TEST_DIR
+    mkdir input_files
     for i in $(seq 1 $NUM_FILES); do
         python $PYTHON_SCRIPT generatefile "$TEST_DIR/input_files/$i.txt" $RANDOM $NUM_MSGS
         wc $TEST_DIR/input_files/$i.txt
     done
 }
 
+run_logstash() {
+    TEST_DIR=$1
+    CONFIG=$2
+    RUNTIME=$3
+    cd $TEST_DIR
+    mkdir output_files
+    echo $CONFIG
+    logstash/bin/logstash -e "$CONFIG" &
+    PID=$!
+    sleep $RUNTIME
+    kill $PID
+    sleep 10
+}
+
+clear_test_interval() {
+    TEST_DIR=$1
+    FILTER_DIR=$2
+    cd $FILTER_DIR
+    rm $FILTER_DIR/*.gem
+    sudo rm -r $TEST_DIR
+    echo 'done'
+}
 

@@ -1,7 +1,7 @@
 import sys
 
 def generatefile(filename, pattern, rep):
-    f = open(filename, 'w')
+    f = open(filename, 'a')
     try:
         for _ in xrange(rep):
             f.write(pattern + '\n')

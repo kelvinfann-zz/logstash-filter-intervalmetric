@@ -2,10 +2,10 @@
 
 #SETTING UP VARS
 . test_utils
-CURR_DIR=$(pwd)
+FILTER_DIR=$(pwd)
 LOGSTASH_VERSION="1.5.0"
 LOGSTASH_DL_LINK="https://download.elastic.co/logstash/logstash/logstash-${LOGSTASH_VERSION}.tar.gz"
-PYTHON_SCRIPT="$CURR_DIR/test_helper.py"
+PYTHON_SCRIPT="$FILTER_DIR/test_helper.py"
 
 # CREATING TESTING DIRECTORY
 mkdir ../logstash_test
@@ -53,6 +53,7 @@ output{
             path => "'${TEST_DIR}'/output_files/intervalmetrics.log"
             codec => "rubydebug"
         }
+        stdout{}
     }
 
 }
@@ -62,9 +63,7 @@ output{
 
 # Calling sudo early so it doesn't get burried by the stdout
 
-cd $TEST_DIR
-touch hi
-sudo rm hi
+sudo cd $TEST_DIR
 
 # INSTALLING A PORTABLE LOGSTASH
 
@@ -72,37 +71,19 @@ download_logstash $TEST_DIR
 
 # BUILDING FILTER INTO LOGSTASH
 
-cd $CURR_DIR
-gem build logstash-filter-intervalmetric.gemspec
-$TEST_DIR/logstash/bin/plugin install logstash-filter-intervalmetric-*.gem
-
+install_IM_filter $TEST_DIR $FILTER_DIR
 
 # CREATING FILES TO TEST
 
-cd $TEST_DIR
-mkdir input_files
-for i in $(seq 1 30); do
-    python $PYTHON_SCRIPT generatefile "$TEST_DIR/input_files/$i.txt" "$i" 50000
-    wc $TEST_DIR/input_files/$i.txt
-done
+generate_input_files $TEST_DIR $PYTHON_SCRIPT 10 50000
 
 # RUNNING LOGSTASH
-
-cd $TEST_DIR
-mkdir output_files
-# echo "running: $CONFIG0"
-# logstash/bin/logstash -e "$CONFIG0" & 
-echo "running: $CONFIG1"
-logstash/bin/logstash -e "$CONFIG1" &
-PID=$!
-sleep 40
-kill $PID
+run_logstash $TEST_DIR "$CONFIG1" 80
 cat $TEST_DIR/output_files/*
-python $PYTHON_SCRIPT compare $TEST_DIR/output_files/intervalmetrics.log $TEST_DIR/output_files/metrics.log
+# python $PYTHON_SCRIPT compare $TEST_DIR/output_files/intervalmetrics.log $TEST_DIR/output_files/metrics.log
 
 # REMOVING CREATED FILES
 
-cd $CURR_DIR
-rm $CURR_DIR/*.gem
-sudo rm -r $TEST_DIR
-echo 'done'
+clear $TEST_DIR $FILTER_DIR 
+
+

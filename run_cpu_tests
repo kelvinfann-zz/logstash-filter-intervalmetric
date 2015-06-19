@@ -20,16 +20,37 @@ input{
     }
 }
 filter{
+    sleep {
+        time => "10"
+        every => 50000
+    }
     intervalmetric{
         counter => ["%{message}"]
         count_interval => 10
         add_tag => "im"
+    }
+    if "im" not in [tags]{
+    metrics{
+        meter => "%{message}"
+        add_tag => "m"
+        rates => []
+        flush_interval => 5 
+    }
     }
 }
 output{
     if "im" in [tags]{
         file{
             path => "'${TEST_DIR}'/output_files/intervalmetrics.log"
+            codec => "rubydebug"
+        }
+        stdout{
+            codec => "rubydebug"
+        }
+    }
+    if "m" in [tags]{
+        file{
+            path => "'${TEST_DIR}'/output_files/metrics.log"
             codec => "rubydebug"
         }
         stdout{
@@ -43,8 +64,7 @@ output{
 # Calling sudo early so it doesn't get burried by the stdout
 
 cd $TEST_DIR
-touch hi
-sudo rm hi
+sudo ls 
 
 # INSTALLING A PORTABLE LOGSTASH
 
@@ -66,20 +86,21 @@ cd $TEST_DIR
 mkdir input_files
 mkdir output_files
 echo "running: $CONFIG1"
-logstash/bin/logstash -e "$CONFIG1" &
+logstash/bin/logstash -e "$CONFIG0" &
 PID=$!
 SLEEP_TIME=180
 while true; do
     echo "one iter started"
     for i in $(seq 1 15); do
-        python $PYTHON_SCRIPT generatefile "$TEST_DIR/input_files/$i.txt" "$RANDOM" 500000
+        python $PYTHON_SCRIPT generatefile "$TEST_DIR/input_files/$i.txt" "$RANDOM" 25000
         wc $TEST_DIR/input_files/$i.txt
     done
     sleep $SLEEP_TIME
-    for i in $(seq 1 15); do
-        > $TEST_DIR/input_files/$i.txt
-        wc $TEST_DIR/input_files/$i.txt
-    done
+    # for i in $(seq 1 15); do
+    #     > $TEST_DIR/input_files/$i.txt
+    #     wc $TEST_DIR/input_files/$i.txt
+    # done
+    python $PYTHON_SCRIPT compare "${TEST_DIR}/output_files/intervalmetrics.log" "${TEST_DIR}/output_files/metrics.log" 
     if $(python $PYTHON_SCRIPT track $TEST_DIR/output_files/intervalmetrics.log); then
         ((SLEEP_TIME += 5))
     else
