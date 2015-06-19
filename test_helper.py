@@ -10,7 +10,7 @@ def generatefile(filename, pattern, rep):
 
 def parse_metric(log):
     split_log = log.split('.count":')
-    name = [item[item.rindex('"'):] for item in split_log[:-1]]
+    name = [item[item.rindex('"')+1:] for item in split_log[:-1]]
     value = [int(item[:item.index(',')]) for item in split_log[1:]]
     metrics = {}
     for i in xrange(len(name)):
@@ -27,7 +27,7 @@ def parse_metric_file(filename):
 
 def parse_intervalmetric(log):
     split_log = log.split('.count":')
-    name = [item[item.rindex('"'):] for item in split_log[:-1]]
+    name = [item[item.rindex('"')+1:] for item in split_log[:-1]]
     unparsed_values = (item[item.index('{')+1:item.index("}")] for item in split_log[1:])
     value = []
     for up_value in unparsed_values:
