@@ -32,13 +32,21 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   config :count_interval, :validate => :number, :default => 600
  
   # The starting time of the interval
+  # syntax: `interval_start => `\int`
   config :interval_start, :validate => :number, :default => 0
 
-  # the default metrics you want to keep track of
-  config :persist_counters, :validate => :array, :default => []
+  # the default metrics you want to keep track of. They will 
+  # always show in the meter with a minium count of 0
+  # syntax: `persist_counters => [ "name of metric", "name of metric" ]`
+  config :persist_counter, :validate => :array, :default => []
 
+  # the time indicator of the message; event[time_indicator]
+  # syntax: `counter => [ "name of metric", "name of metric" ]`
   config :time_indicator, :validate => :string, :default => '@timestamp'
 
+  # Where intervalmetric saves its current counts. If left
+  # as '' it does not save counts on a graceful shutdown
+  # `seralize_path => `/path/to/seralize/file`
   config :seralize_path, :validate => :string, :default => ''
 
   public
@@ -47,26 +55,22 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     require "socket"
     require "atomic"
     require "thread_safe"
-    require "time"
     if @count_interval <= 5
       @count_interval = 10 
-    end # @counter_interval <= 0
+    end
     @last_flush = Atomic.new(0) # how many seconds ago the metrics were flushed
-    @curr_interval_time = Atomic.new(get_start_interval())
     @random_key_prefix = SecureRandom.hex
     @metric_counter = ThreadSafe::Cache.new { |h,k| h[k] = Metriks.counter metric_key(k) } 
-    if @seralize_path != '' and File.exist?(@seralize_path)
-      deseralize_counters 
-    end
+    deseralize_counters
   end # def register
 
   public
   def filter(event)
     return unless filter?(event)
-    interval = get_time_interval(event['@timestamp'].time.utc)
+    interval = parse_time_interval(event[@time_indicator].time.utc)
     @counter.each do |c|
       @metric_counter["#{event.sprintf(c)}_#{interval.to_s}"].increment 
-    end # @counter.each
+    end
   end # def filter
   
   public
@@ -75,31 +79,29 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
 
     return unless should_flush?
 
+    curr_interval = get_curr_interval
+
     event = LogStash::Event.new
     event["message"] = Socket.gethostname
-    event["curr_interval"] = @curr_interval_time.value 
+    event["curr_interval"] = curr_interval 
 
     has_values = false
     @persist_counters.each do |c|
-      event["#{c}.count"] = { @curr_interval_time.value => 0 }
-    end # @counter.each
+      event["#{c}.count"] = { curr_interval => 0 }
+    end
     @metric_counter.each_pair do |extended_name, metric|
-      expanded_name = extended_name.reverse.split('_', 2).map(&:reverse) # spliting by the last '_'
-      name = expanded_name[1]
+      expanded_name = extended_name.reverse.split('_', 2).map(&:reverse)
       interval_time = expanded_name[0].to_i
-      if interval_time < @curr_interval_time.value
+      if interval_time < curr_interval
         flush_count(event, name, interval_time, metric)
         @metric_counter.delete(extended_name)
         has_values = true
-      end # interval == @curr_interval_time
-    end # @metric_counter.each_pair
-
+      end
+    end
     event["has_values"] = has_values
-    # to compensate the offset rather 
     @last_flush.update { |v| v % @count_interval }
-    @curr_interval_time.update { |v| v + (@count_interval*1000) }
 
-    filter_matched(event) # last line of our successful code
+    filter_matched(event)
     return [event]
   end # def flush
 
@@ -110,13 +112,6 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     true
   end # def periodic_flush
 
-  def flush_count(event, name, interval, metric)
-    if event["#{name}.count"] == nil
-      event["#{name}.count"] = {}
-    end # if event[
-    event["#{name}.count"][interval] = metric.count
-  end # def flush_rates
-
   def metric_key(key)
     "#{@random_key_prefix}_#{key}"
   end # def metric_key
@@ -124,57 +119,64 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   def should_flush?
     @last_flush.value > @count_interval
   end # def should_flush
-  
-  # NOTICE: We cannot simply use get_time_interval since the start cannot carry
-  # usecs. 
-  def get_start_interval()
+
+  def flush_count(event, name, interval, metric)
+    if event["#{name}.count"] == nil
+      event["#{name}.count"] = {}
+    end
+    event["#{name}.count"][interval] = metric.count
+  end # def flush_rates
+   
+  def convert_to_ms(time)
+    return (time.to_f * 1000).to_i
+  end # convert_to_ms
+
+  def get_curr_interval
     now = Time.now.utc
     start_interval = Time.gm(now.year, now.month, now.day).utc
     while start_interval + @count_interval < now
       start_interval += @count_interval
-    end #while
+    end 
     return convert_to_ms(start_interval.utc)
   end # get_start_interval
 
-  # NOTICE: The time that is returned is not exactly correct since it still carries
-  # the usec, however, since we parse this value into a string in the name of the 
-  # metric and then reparse it back into a time, it effectively truncates the usecs  
-  def get_time_interval(time)
+  def parse_time_interval(time)
     seconds = (time.sec + (time.min*60) + (time.hour*60*60))
     interval = (seconds / @count_interval).to_i * @count_interval
     floored_time = (convert_to_ms(time) / 1000).to_i 
     return (floored_time - seconds + interval) * 1000
-  end # get_time_interval
-
-  def convert_to_ms(time)
-    return (time.to_f * 1000).to_i
-  end # convert_to_ms
+  end # parse_time_interval
 
   def seralize_counters
     open(@seralize_path, 'a') do |f|
       @metric_counter.each_pair do |extended_name, metric|
         @metric_counter.delete(extended_name)
         f.puts "#{extended_name}:#{metric.count}"
-      end # @metric_counter.each_pair
-    end # open(@seralize_path, 'a')
+      end
+    end
   end # seralize_counters 
 
   def deseralize_counters
+    if @seralize_path != '' and File.exist?(@seralize_path)
+      _deseralize_counters 
+    end
+  end # deseralize_counters
+
+  def _deseralize_counters
     open(@seralize_path, 'r') do |f|
       f.each_line do |line|
         expanded_name = line.reverse.split(':', 2).map(&:reverse) # spliting by the last '_'
         name = expanded_name[1]
         count = expanded_name[0].to_i
         count.downto(1) { |x| @metric_counter[name].increment }
-      end # f.each_line
-    end # open
-  end # deseralize_counters
+      end
+    end
+    File.delete(@seralize_path)
+  end # _deseralize_counters
 
   def teardown
     if @seralize_path != ''
       seralize_counters
-    else
-      puts "No specified seralized path; results will not be saved"
     end
   end # teardown
   
