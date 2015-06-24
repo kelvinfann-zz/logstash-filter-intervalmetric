@@ -39,6 +39,8 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
 
   config :time_indicator, :validate => :string, :default => '@timestamp'
 
+  config :seralize_path, :validate => :string, :default => ''
+
   public
   def register
     require "metriks"
@@ -53,6 +55,9 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     @curr_interval_time = Atomic.new(get_start_interval())
     @random_key_prefix = SecureRandom.hex
     @metric_counter = ThreadSafe::Cache.new { |h,k| h[k] = Metriks.counter metric_key(k) } 
+    if @seralize_path != '' and File.exist?(@seralize_path)
+      deseralize_counters 
+    end
   end # def register
 
   public
@@ -140,15 +145,38 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     floored_time = (convert_to_ms(time) / 1000).to_i 
     return (floored_time - seconds + interval) * 1000
   end # get_time_interval
+
   def convert_to_ms(time)
     return (time.to_f * 1000).to_i
   end # convert_to_ms
+
+  def seralize_counters
+    open(@seralize_path, 'a') do |f|
+      @metric_counter.each_pair do |extended_name, metric|
+        @metric_counter.delete(extended_name)
+        f.puts "#{extended_name}:#{metric.count}"
+      end # @metric_counter.each_pair
+    end # open(@seralize_path, 'a')
+  end # seralize_counters 
+
+  def deseralize_counters
+    open(@seralize_path, 'r') do |f|
+      f.each_line do |line|
+        expanded_name = line.reverse.split(':', 2).map(&:reverse) # spliting by the last '_'
+        name = expanded_name[1]
+        count = expanded_name[0].to_i
+        count.downto(1) { |x| @metric_counter[name].increment }
+      end # f.each_line
+    end # open
+  end # deseralize_counters
+
   def teardown
-    @last_flush.update {|v| v + @count_interval}
-    flush()
-    @last_flush.update {|v| v + @count_interval}
-    flush()
-    
+    if @seralize_path != ''
+      seralize_counters
+    else
+      puts "No specified seralized path; results will not be saved"
+    end
   end # teardown
+  
 end # class LogStash::Filters::Example
 

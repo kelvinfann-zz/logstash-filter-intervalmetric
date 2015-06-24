@@ -8,8 +8,9 @@ LOGSTASH_DL_LINK="https://download.elastic.co/logstash/logstash/logstash-${LOGST
 PYTHON_SCRIPT="$FILTER_DIR/test_helper.py"
 
 # CREATING TESTING DIRECTORY
-mkdir ../logstash_test
-cd ../logstash_test
+key=$RANDOM
+mkdir ../logstash_test_$key
+cd ../logstash_test_$key
 TEST_DIR=$(pwd)
 
 CONFIG0='
@@ -47,15 +48,15 @@ output{
             path => "'${TEST_DIR}'/output_files/metrics.log"
             codec => "rubydebug"
         }
-   }
+    }
     if "im" in [tags]{
         file{
             path => "'${TEST_DIR}'/output_files/intervalmetrics.log"
             codec => "rubydebug"
         }
         stdout{}
-    }
-
+   }
+    
 }
 '
 
@@ -75,15 +76,18 @@ install_IM_filter $TEST_DIR $FILTER_DIR
 
 # CREATING FILES TO TEST
 
-generate_input_files $TEST_DIR $PYTHON_SCRIPT 10 50000
+generate_input_files $TEST_DIR $PYTHON_SCRIPT 30 50000
 
 # RUNNING LOGSTASH
 run_logstash $TEST_DIR "$CONFIG1" 80
 cat $TEST_DIR/output_files/*
-# python $PYTHON_SCRIPT compare $TEST_DIR/output_files/intervalmetrics.log $TEST_DIR/output_files/metrics.log
+python $PYTHON_SCRIPT compare $TEST_DIR/output_files/intervalmetrics.log $TEST_DIR/output_files/metrics.log
+run_logstash $TEST_DIR "$CONFIG1" 120 
+python $PYTHON_SCRIPT intervalmetric "$TEST_DIR/output_files/intervalmetrics.log"
+#python $PYTHON_SCRIPT metric "$TEST_DIR/output_files/metrics.log"
 
 # REMOVING CREATED FILES
 
-clear $TEST_DIR $FILTER_DIR 
+clear_test_interval $TEST_DIR $FILTER_DIR 
 
 

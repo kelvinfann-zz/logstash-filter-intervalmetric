@@ -1,10 +1,19 @@
 import sys
+import random as r
 
-def generatefile(filename, pattern, rep):
+def generate_file(filename, pattern, rep):
     f = open(filename, 'a')
     try:
         for _ in xrange(rep):
             f.write(pattern + '\n')
+    finally:
+        f.close()
+
+def generate_random_file(filename, rep):
+    f = open(filename, 'a')
+    try:
+        for _ in xrange(rep):
+            f.write(str(int(r.random()*10000)) + '\n')
     finally:
         f.close()
 
@@ -65,16 +74,19 @@ def parse_intervalmetric_file_has_values(filename):
 def compare_logfiles(interval_file, metric_file):
     interval_metric = parse_intervalmetric_file(interval_file)
     metric = parse_metric_file(metric_file)
+    not_matched = set()
     is_same = True
     for key in interval_metric:
         if key not in metric:
             is_same = False
-        if interval_metric[key] != metric[key]:
+            not_matched.add(key)
+        elif interval_metric[key] != metric[key]:
             is_same = False
     for key in metric:
         if key not in interval_metric:
             is_same = False
-    return interval_metric, metric, is_same
+            not_matched.add(key)
+    return interval_metric, metric, not_matched, is_same
 
 def main():
     command = ""
@@ -84,7 +96,11 @@ def main():
         filename = str(sys.argv[2])
         pattern = str(sys.argv[3])
         rep = int(sys.argv[4])
-        generatefile(filename, pattern, rep)
+        generate_file(filename, pattern, rep)
+    elif command == "generate_random_file" and len(sys.argv) == 4:
+        filename = str(sys.argv[2])
+        rep = int(sys.argv[3])
+        generate_random_file(filename, rep)
     elif command == "compare" and len(sys.argv) == 4:
         intervalmetric_filename = str(sys.argv[2])
         metric_filename = str(sys.argv[3])
@@ -92,6 +108,12 @@ def main():
     elif command == "track" and len(sys.argv) == 3:
         filename = str(sys.argv[2])
         print parse_intervalmetric_file_has_values(filename)
+    elif command == "intervalmetric" and len(sys.argv) == 3:
+        intervalmetric_filename = str(sys.argv[2])
+        print parse_intervalmetric_file(intervalmetric_filename)
+    elif command == "metric" and len(sys.argv) == 3:
+        metric_filename = str(sys.argv[2])
+        print parse_metric_file(metric_filename) 
     else:
         raise ValueError("bad params")
 
