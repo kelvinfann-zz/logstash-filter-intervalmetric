@@ -158,7 +158,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   end # seralize_counters 
 
   def deseralize_counters
-    if @seralize_path != '' and File.exist?(@seralize_path)
+    if @seralize_path != '' && File.exist?(@seralize_path)
       _deseralize_counters 
     end
   end # deseralize_counters
