@@ -86,11 +86,12 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     event["curr_interval"] = curr_interval 
 
     has_values = false
-    @persist_counters.each do |c|
+    @persist_counter.each do |c|
       event["#{c}.count"] = { curr_interval => 0 }
     end
     @metric_counter.each_pair do |extended_name, metric|
       expanded_name = extended_name.reverse.split('_', 2).map(&:reverse)
+      name = expanded_name[1].to_s
       interval_time = expanded_name[0].to_i
       if interval_time < curr_interval
         flush_count(event, name, interval_time, metric)
@@ -150,8 +151,8 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   def seralize_counters
     open(@seralize_path, 'a') do |f|
       @metric_counter.each_pair do |extended_name, metric|
-        @metric_counter.delete(extended_name)
         f.puts "#{extended_name}:#{metric.count}"
+        @metric_counter.delete(extended_name)
       end
     end
   end # seralize_counters 
@@ -168,7 +169,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
         expanded_name = line.reverse.split(':', 2).map(&:reverse) # spliting by the last '_'
         name = expanded_name[1]
         count = expanded_name[0].to_i
-        count.downto(1) { |x| @metric_counter[name].increment }
+        count.downto(1) { |_| @metric_counter[name].increment }
       end
     end
     File.delete(@seralize_path)
