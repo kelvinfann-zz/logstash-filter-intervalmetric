@@ -18,6 +18,10 @@ If you read through the code, it copies large portions of code from the metric c
 
 ## Documentation
 
-To be completed after the plugin is completed. 
-
+Interval Metric is, in many ways, a simplified version of the metrics plugin. The configs that should concern you are:
+  1. `counter` - like the `meter` config from metrics, it is just the name of the counter of the message. It also supports the event parsing markup that the `meter` supports.
+  2. `count_interval` - the time interval buckets in which the interval metric will sort the counts. The count_interval should be evenly divisible in a day (24hrs). The counts will be flushed at each interval with a 5 second delay.  
+  3. `persist_counter` - by default the counters for the meters you specify will not output anything on each flush if the count is 0. Counters indicated in persist_counter will always show up in the flush. 
+  4. `time_indicator` - the time indicator of the events that will be used to put the messages into the correct time bucket.
+  5. `seralize_path` - the *absolute* path to a *file* in which the intervalmetric will save the counts that have not been flushed out in the case of a graceful shutdown. This is also the path the filter will read from when it starts initially. 
 
