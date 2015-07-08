@@ -12,9 +12,13 @@ Following the lead of LogStash, this plugin is completely free and fully open so
 
 This plugin is essentially a stripped down and modified version of the LogStash plugin [Metric](https://github.com/logstash-plugins/logstash-filter-metrics). 
 
-The plugin also relies heavily on the [Metriks library](https://github.com/eric/metriks).
-
 If you read through the code, it copies large portions of code from the metric code; I do not claim to be the author of alot of the code. I simply jury-rigged the metrics plugin code to fit my usecase to run some tests. I do not believe I violate any of the licenses of the plugin/lib, but if either parties are upset, feel free to email [me](kelvinfann@outlook.com). I only put this up because I figured some other user might also need to have an interval counter
+
+## Credit
+This plugin utilizes the following libraries:
+  1. [Metriks library](https://github.com/eric/metriks)
+  2. [Atomic library](https://github.com/ruby-concurrency/atomic)
+  3. [Thread-Safe library](https://github.com/ruby-concurrency/thread_safe)
 
 ## Documentation
 
