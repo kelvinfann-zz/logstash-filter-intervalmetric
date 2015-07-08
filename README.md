@@ -16,9 +16,9 @@ If you read through the code, it copies large portions of code from the metric c
 
 ## Credit
 This plugin utilizes the following libraries:
-  1. [Metriks library](https://github.com/eric/metriks)
-  2. [Atomic library](https://github.com/ruby-concurrency/atomic)
-  3. [Thread-Safe library](https://github.com/ruby-concurrency/thread_safe)
+  - [Metriks library](https://github.com/eric/metriks)
+  - [Atomic library](https://github.com/ruby-concurrency/atomic)
+  - [Thread-Safe library](https://github.com/ruby-concurrency/thread_safe)
 
 ## Documentation
 
