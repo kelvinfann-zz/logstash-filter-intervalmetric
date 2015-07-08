@@ -30,10 +30,6 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   # delayed by 5 seconds.
   # syntax: `count_interval => `\int`
   config :count_interval, :validate => :number, :default => 600
- 
-  # The starting time of the interval
-  # syntax: `interval_start => `\int`
-  config :interval_start, :validate => :number, :default => 0
 
   # the default metrics you want to keep track of. They will 
   # always show in the meter with a minium count of 0
