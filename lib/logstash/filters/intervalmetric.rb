@@ -29,7 +29,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
   # It also determines the flush_interval, which is the same, but is
   # delayed by 5 seconds.
   # syntax: `count_interval => `\int`
-  config :count_interval, :validate => :number, :default => 600
+  config :count_interval, :validate => :number, :default => 20
 
   # the default metrics you want to keep track of. They will 
   # always show in the meter with a minium count of 0
@@ -96,6 +96,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
       end
     end
     event["has_values"] = has_values
+    event["count_interval"] = @count_interval
     @last_flush.update { |v| v % @count_interval }
 
     filter_matched(event)
