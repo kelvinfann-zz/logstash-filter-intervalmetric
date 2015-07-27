@@ -135,7 +135,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     while start_interval + @count_interval < now
       start_interval += @count_interval
     end 
-    return convert_to_ms(start_interval.utc)
+    return convert_to_ms(start_interval.utc)/1000
   end # get_start_interval
 
   def parse_time_interval(time)
