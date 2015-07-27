@@ -142,7 +142,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     seconds = (time.sec + (time.min*60) + (time.hour*60*60))
     interval = (seconds / @count_interval).to_i * @count_interval
     floored_time = (convert_to_ms(time) / 1000).to_i 
-    return (floored_time - seconds + interval) * 1000
+    return (floored_time - seconds + interval)
   end # parse_time_interval
 
   def seralize_counters
