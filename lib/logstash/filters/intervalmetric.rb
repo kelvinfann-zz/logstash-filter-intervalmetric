@@ -42,8 +42,8 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
 
   # Where intervalmetric saves its current counts. If left
   # as '' it does not save counts on a graceful shutdown
-  # `seralize_path => `/path/to/seralize/file`
-  config :seralize_path, :validate => :string, :default => ''
+  # `save_path => `/path/to/save/file`
+  config :save_path, :validate => :string, :default => ''
 
   public
   def register
@@ -57,7 +57,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     @last_flush = Atomic.new(0) # how many seconds ago the metrics were flushed
     @random_key_prefix = SecureRandom.hex
     @metric_counter = ThreadSafe::Cache.new { |h,k| h[k] = Metriks.counter metric_key(k) } 
-    deseralize_counters
+    read_save
   end # def register
 
   public
@@ -145,36 +145,32 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     return (floored_time - seconds + interval)
   end # parse_time_interval
 
-  def seralize_counters
-    open(@seralize_path, 'a') do |f|
+  def write_save
+    open(@save_path, 'a') do |f|
       @metric_counter.each_pair do |extended_name, metric|
         f.puts "#{extended_name}:#{metric.count}"
         @metric_counter.delete(extended_name)
       end
     end
-  end # seralize_counters 
+  end # write_save
 
-  def deseralize_counters
-    if @seralize_path != '' && File.exist?(@seralize_path)
-      _deseralize_counters 
-    end
-  end # deseralize_counters
-
-  def _deseralize_counters
-    open(@seralize_path, 'r') do |f|
-      f.each_line do |line|
-        expanded_name = line.reverse.split(':', 2).map(&:reverse) # spliting by the last '_'
-        name = expanded_name[1]
-        count = expanded_name[0].to_i
-        count.downto(1) { |_| @metric_counter[name].increment }
+  def read_save
+    if @save_path != '' && File.exist?(@save_path)
+      open(@save_path, 'r') do |f|
+        f.each_line do |line|
+          expanded_name = line.reverse.split(':', 2).map(&:reverse) # spliting by the last '_'
+          name = expanded_name[1]
+          count = expanded_name[0].to_i
+          count.downto(1) { |_| @metric_counter[name].increment }
+        end
       end
+      File.delete(@save_path)
     end
-    File.delete(@seralize_path)
-  end # _deseralize_counters
+  end # read_save
 
   def teardown
-    if @seralize_path != ''
-      seralize_counters
+    if @save_path != ''
+      write_save
     end
   end # teardown
   
