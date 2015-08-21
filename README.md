@@ -65,6 +65,7 @@ $ counter2
 $ counter3
 $ counter3
 $ counter3
+$
 ```
 
 output:
