@@ -14,6 +14,7 @@ If you read through the code, it copies large portions of code from the metric c
 
 ##Credit
 This plugin utilizes the following libraries:
+
   - [Metriks library](https://github.com/eric/metriks)
   - [Atomic library](https://github.com/ruby-concurrency/atomic)
   - [Thread-Safe library](https://github.com/ruby-concurrency/thread_safe)
@@ -24,6 +25,7 @@ You install this plugin as you would install all logstash plugins. Here is a [gu
 ##Config
 
 Interval Metric is, in many ways, a simplified version of the metrics plugin. The configs that should concern you are:
+
   - `counter`: like the `meter` config from metrics, it is just the name of the counter of the message. It also supports the event parsing markup that the `meter` supports. Defaults to '[]'
   - `count_interval`: the time interval buckets in which the interval metric will sort the counts. The count_interval should be evenly divisible in a day (24hrs). The counts will be flushed at each interval with a 5 second delay. Defaults to 20
   - `persist_counter`: by default the counters for the meters you specify will not output anything on each flush if the count is 0. Counters indicated in persist_counter will always show up in the flush. Defaults to '[]'
@@ -69,6 +71,7 @@ $
 ```
 
 output:
+
 ```
 {
 	"message": "localhost",
@@ -102,6 +105,7 @@ $
 ```
 
 output:
+
 ```
 {
 	"message": "localhost",
