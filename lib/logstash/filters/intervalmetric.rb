@@ -138,6 +138,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     end
     event["has_values"] = has_values
     event["count_interval"] = @count_interval
+    event["count_interval_formated"] = Time.at(@count_interval).utc
     @last_flush.update { |v| v % @count_interval }
 
     filter_matched(event)
