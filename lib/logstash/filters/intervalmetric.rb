@@ -121,7 +121,7 @@ class LogStash::Filters::IntervalMetric < LogStash::Filters::Base
     event = LogStash::Event.new
     event["message"] = Socket.gethostname
     event["curr_interval"] = curr_interval 
-    event["curr_interval_formated"] = Time.at(@curr_interval).utc
+    event["curr_interval_formated"] = Time.at(curr_interval).utc
 
     has_values = false
     @persist_counter.each do |c|
